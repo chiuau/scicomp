@@ -1,0 +1,73 @@
+  class SolveNode {
+    int frame_id;
+    int parent_frame_id;
+    std::vector<bool> locked_drone_ids;
+  public:
+
+    SolveNode(int frame_id, int parent_frame_id, int drone_num) :
+        frame_id{frame_id}, parent_frame_id{parent_frame_id}, locked_drone_ids(drone_num, false)
+    {
+      // do nothing
+    }
+
+    int getFrameId() const { return frame_id; }
+    int hasParentFrameId() const { return parent_frame_id >= 0; }
+    int getParentFrameId() const { return parent_frame_id; }
+    bool isLocked(int drone_id) const { return locked_drone_ids[drone_id]; }
+
+    void setLocked(int drone_id) { locked_drone_ids[drone_id] = true; }
+
+    void print() const {
+      std::cout << "frame_id="<< frame_id << " parent_frame_id=" << parent_frame_id << " Locked_drone_ids={";
+      bool isFirst = true;
+      for(int drone_id=0; drone_id<locked_drone_ids.size(); drone_id++) {
+        if (locked_drone_ids[drone_id]) {
+          if (!isFirst) std::cout << ",";
+          std::cout << drone_id;
+          isFirst = false;
+        }
+      }
+      std::cout << "}" << std::endl;
+    }
+  };
+
+  class SolveTree {
+    const int drone_num;
+    std::unordered_map<int,SolveNode> solve_node_db;
+
+  public:
+
+    SolveTree(int drone_num) : drone_num{drone_num} {}
+
+    void addNewSolveNode(int frame_id, int parent_frame_id=-1) {
+      solve_node_db.insert({frame_id, SolveNode{frame_id, parent_frame_id, drone_num}});
+    }
+
+    SolveNode& getSolveNode(int frame_id) { return solve_node_db.at(frame_id); }
+    const SolveNode& getSolveNode(int frame_id) const { return solve_node_db.at(frame_id); }
+
+    int findEarliestUnlockedDroneFrameId(int frame_id, int drone_id) const {
+      auto& node = getSolveNode(frame_id);
+      if (node.isLocked(drone_id)) return -1;
+      if (!node.hasParentFrameId()) return frame_id;
+      return findEarliestUnlockedDroneFrameId(node.getParentFrameId(), drone_id);
+    }
+
+    std::vector<int> findEarliestUnlockedDroneFrameIdList(int frame_id, int drone_id) const {
+      std::vector<int> frame_id_list;
+      findEarliestUnlockedDroneFrameIdListImpl(frame_id_list, frame_id, drone_id);
+      std::reverse(frame_id_list.begin(), frame_id_list.end());
+      return frame_id_list;
+    }
+
+    void findEarliestUnlockedDroneFrameIdListImpl(std::vector<int>& frame_id_list, int frame_id, int drone_id) const {
+      auto& node = getSolveNode(frame_id);
+      if (node.isLocked(drone_id)) return;
+      frame_id_list.push_back(frame_id);
+      if (!node.hasParentFrameId()) return;
+      findEarliestUnlockedDroneFrameIdListImpl(frame_id_list, node.getParentFrameId(), drone_id);
+    }
+
+  };
+
+
